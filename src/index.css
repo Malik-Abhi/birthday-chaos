@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Adorable Notebook";
+  src: url("./Font Family/Adorable Notebook.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Adorable Notebook";
+  src: url("./Font Family/Adorable Notebook.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+.font-adorable {
+  font-family: "Adorable Notebook", "Comic Sans MS", "Segoe Print", cursive;
+}
+
+.font-adorable-bold {
+  font-family: "Adorable Notebook", "Comic Sans MS", "Segoe Print", cursive;
+  font-weight: 700;
+}
+
 body {
   font-family: "Inter", system-ui, sans-serif;
   background: radial-gradient(

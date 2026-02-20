@@ -19,12 +19,15 @@ export default function App() {
   const { width, height } = useWindowSize();
   const reduceMotion = useReducedMotion();
   const totalCards = 6;
-  const stageOrder: Array<"button" | "wheel" | "shuffle" | "cards" | "win"> = [
+  const stageOrder: Array<
+    "button" | "wheel" | "shuffle" | "cards" | "win" | "envelope"
+  > = [
     "button",
     "wheel",
     "shuffle",
     "cards",
     "win",
+    "envelope",
   ];
 
   const images = [
@@ -36,10 +39,11 @@ export default function App() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isImageFlipped, setIsImageFlipped] = useState(false);
   const [openNote, setOpenNote] = useState(false);
 
   const [stage, setStage] = useState<
-    "button" | "wheel" | "shuffle" | "cards" | "win"
+    "button" | "wheel" | "shuffle" | "cards" | "win" | "envelope"
   >(
     "button"
   );
@@ -48,6 +52,7 @@ export default function App() {
   const [btnX, setBtnX] = useState(0);
   const [btnY, setBtnY] = useState(0);
   const [surrenderCountdown, setSurrenderCountdown] = useState(10);
+  const [catchTapCount, setCatchTapCount] = useState(0);
   const [wrongCard, setWrongCard] = useState<Card[]>([]);
 
   const [revealGift, setRevealGift] = useState(true);
@@ -70,6 +75,8 @@ export default function App() {
   const [wheelResult, setWheelResult] = useState<string | null>(null);
   const [isWheelSpinning, setIsWheelSpinning] = useState(false);
   const [hasSpunWheel, setHasSpunWheel] = useState(false);
+  const [envelopeOpened, setEnvelopeOpened] = useState(false);
+  const [noteRevealed, setNoteRevealed] = useState(false);
   const openNoteHeight = width < 640 ? 620 : 460;
   const confettiPieces = width < 640 ? 360 : 700;
   const burstPieces = width < 640 ? 140 : 260;
@@ -91,6 +98,25 @@ export default function App() {
       "You make people feel lucky to know you.",
       "Certified icon behavior.",
       "Chaos level: fun. Vibe level: elite.",
+      "Birthday aura: dangerously iconic.",
+      "You are the plot twist everyone loves.",
+      "You are low-key legendary and high-key unforgettable.",
+      "You make normal moments feel magical.",
+      "Your vibe deserves its own fan club.",
+      "If joy had a face, it would borrow yours.",
+      "You are proof that stars can walk around in human form.",
+      "Even cake is excited to meet you today.",
+      "You are the reason this day feels extra bright.",
+      "The world got prettier the day you arrived.",
+    ],
+    []
+  );
+  const carouselBackMessages = useMemo(
+    () => [
+      "Memory #1: Chaos looked good on us.",
+      "Memory #2: Two icons, one frame.",
+      "Memory #3: Main-character energy, always.",
+      "Memory #4: This one deserves a replay.",
     ],
     []
   );
@@ -111,7 +137,7 @@ export default function App() {
     []
   );
   const wheelStopOptions = useMemo(
-    () => ["1 Gift 🎁", "2 Gifts 🎁", "3 Gifts 🎁"],
+    () => ["3 Gifts 🎁", "4 Gifts 🎁", "5 Gifts 🎁"],
     []
   );
   const wheelSliceColors = [
@@ -133,32 +159,6 @@ export default function App() {
       })
       .join(", ")})`;
   }, [wheelOptions]);
-
-  const themes = {
-    classic: {
-      paper: "bg-[radial-gradient(circle_at_top,#fff8dc,#f5deb3)]",
-      border: "border-yellow-700",
-      rod: "bg-yellow-700",
-      text: "text-yellow-900",
-      subText: "text-yellow-800/70",
-    },
-    romantic: {
-      paper: "bg-[radial-gradient(circle_at_top,#ffe4e6,#fecdd3)]",
-      border: "border-rose-500",
-      rod: "bg-rose-500",
-      text: "text-rose-900",
-      subText: "text-rose-800/70",
-    },
-    royal: {
-      paper: "bg-[radial-gradient(circle_at_top,#ede9fe,#ddd6fe)]",
-      border: "border-indigo-600",
-      rod: "bg-indigo-600",
-      text: "text-indigo-900",
-      subText: "text-indigo-800/70",
-    },
-  };
-
-  const theme = themes.romantic; // classic | romantic | royal
 
   const stageCopy = useMemo(
     () => ({
@@ -182,6 +182,10 @@ export default function App() {
         title: "Happy Birthday",
         subtitle: "You found the gift",
       },
+      envelope: {
+        title: "Final Envelope",
+        subtitle: "Totally not a sarcastic message... maybe.",
+      },
     }),
     []
   );
@@ -200,11 +204,13 @@ export default function App() {
   const resetGame = () => {
     setIsModalOpen(false);
     setActiveIndex(0);
+    setIsImageFlipped(false);
     setOpenNote(false);
     setChecked(false);
     setBtnX(0);
     setBtnY(0);
     setSurrenderCountdown(10);
+    setCatchTapCount(0);
     setWrongCard([]);
     setRevealGift(true);
     setCards([]);
@@ -220,6 +226,7 @@ export default function App() {
     setWheelResult(null);
     setIsWheelSpinning(false);
     setHasSpunWheel(false);
+    setNoteRevealed(false);
     setStage("button");
   };
 
@@ -265,6 +272,14 @@ export default function App() {
   }, [images.length, isModalOpen]);
 
   useEffect(() => {
+    if (!isModalOpen) {
+      setIsImageFlipped(false);
+      return;
+    }
+    setIsImageFlipped(false);
+  }, [activeIndex, isModalOpen]);
+
+  useEffect(() => {
     if (!partyMode || (stage !== "cards" && stage !== "win")) return;
     const ticker = setInterval(() => {
       setFunMessageIndex((current) => (current + 1) % funMessages.length);
@@ -294,6 +309,18 @@ export default function App() {
 
     return () => clearInterval(countdown);
   }, [checked, stage]);
+
+  useEffect(() => {
+    if (stage !== "envelope") return;
+    setNoteRevealed(false);
+    setEnvelopeOpened(false);
+  }, [stage]);
+
+  const openEnvelopeSequence = () => {
+    if (stage !== "envelope" || envelopeOpened) return;
+    setEnvelopeOpened(true);
+    window.setTimeout(() => setNoteRevealed(true), 320);
+  };
 
   // ---------------- PICK CARD ----------------
   const pickCard = (card: Card) => {
@@ -385,13 +412,14 @@ export default function App() {
   const moveCatchButton = () => {
     if (checked) return;
     // Let the button dodge in both horizontal and vertical directions.
-    const maxX = Math.max(35, Math.min(width * 0.28, 240));
-    const maxY = Math.max(18, Math.min(height * 0.12, 100));
+    const maxX = Math.max(42, Math.min(width * 0.34, 280));
+    const maxY = Math.max(24, Math.min(height * 0.15, 120));
     const directionX = Math.random() > 0.5 ? 1 : -1;
     const directionY = Math.random() > 0.5 ? 1 : -1;
     setBtnX(directionX * (Math.random() * maxX));
     setBtnY(directionY * (Math.random() * maxY));
   };
+  const isMobileView = width < 640;
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_10%,#4b1d5e_0%,#1f163f_35%,#0b1224_100%)] px-3 py-6 sm:px-5 sm:py-10">
@@ -637,14 +665,26 @@ export default function App() {
             <motion.div variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}>
               <motion.button
                 animate={{ x: btnX, y: btnY }}
-                transition={{ type: "spring", stiffness: 220, damping: 20 }}
+                transition={{ type: "spring", stiffness: 380, damping: 16, mass: 0.55 }}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
                 onMouseEnter={moveCatchButton}
                 onClick={() => {
                   if (!checked) {
-                    setStatusMessage("You caught it! Moving to the wheel.");
-                    setStage("wheel");
+                    if (isMobileView) {
+                      const nextTapCount = catchTapCount + 1;
+                      setCatchTapCount(nextTapCount);
+                      if (nextTapCount >= 4) {
+                        setStatusMessage("You caught it! Moving to the wheel.");
+                        setStage("wheel");
+                      } else {
+                        setStatusMessage(`Nice try... ${nextTapCount}/4 taps`);
+                        moveCatchButton();
+                      }
+                    } else {
+                      setStatusMessage("You caught it! Moving to the wheel.");
+                      setStage("wheel");
+                    }
                   } else {
                     setStatusMessage("First spin the wheel, then we shuffle the cards.");
                     setStage("wheel");
@@ -674,9 +714,16 @@ export default function App() {
                 Surrender
             </motion.label>
             {!checked && (
-              <p className="text-xs text-yellow-200/90 sm:text-sm">
-                Auto-surrender in {surrenderCountdown}s
-              </p>
+              <>
+                <p className="text-xs text-yellow-200/90 sm:text-sm">
+                  Auto-surrender in {surrenderCountdown}s
+                </p>
+                {isMobileView && (
+                  <p className="text-xs text-cyan-200/90 sm:text-sm">
+                    Tap to catch: {catchTapCount}/4
+                  </p>
+                )}
+              </>
             )}
           </motion.div>
         )}
@@ -767,7 +814,7 @@ export default function App() {
                   layout
                   whileHover={{ y: -4 }}
                   transition={{ type: "spring", stiffness: 140, damping: 22 }}
-                  className={`flex h-28 items-center justify-center rounded-3xl text-5xl text-white shadow-2xl sm:h-44 sm:text-6xl lg:h-56 lg:text-7xl ${revealGift && card.hasGift
+                  className={`flex h-24 items-center justify-center rounded-3xl text-4xl text-white shadow-2xl sm:h-36 sm:text-5xl md:h-40 md:text-6xl lg:h-44 lg:text-6xl ${revealGift && card.hasGift
                       ? "scale-105 bg-gradient-to-br from-yellow-400 to-pink-500 ring-4 ring-yellow-300"
                       : "bg-gradient-to-br from-indigo-400 to-purple-600"
                     }`}
@@ -778,8 +825,8 @@ export default function App() {
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 119.53 122.88"
-                      width={width < 640 ? 68 : 92}
-                      height={width < 640 ? 68 : 92}
+                      width={width < 640 ? 56 : width < 1024 ? 70 : 78}
+                      height={width < 640 ? 56 : width < 1024 ? 70 : 78}
                     >
                       <path
                         fill={"#FFF"}
@@ -820,7 +867,7 @@ export default function App() {
                     role="button"
                     aria-label={isWrong ? `Card ${card.id + 1} already wrong` : `Pick card ${card.id + 1}`}
                     className={`
-    flex h-28 items-center justify-center rounded-3xl text-5xl text-white shadow-2xl transition-all duration-300 sm:h-44 sm:text-6xl md:h-52 lg:text-7xl
+    flex h-24 items-center justify-center rounded-3xl text-4xl text-white shadow-2xl transition-all duration-300 sm:h-36 sm:text-5xl md:h-40 md:text-6xl lg:h-44 lg:text-6xl
     ${isWrong
       ? "cursor-not-allowed bg-gray-400/35 grayscale"
       : "cursor-pointer border border-white/20 bg-gradient-to-br from-yellow-400 to-pink-500 hover:brightness-110 hover:shadow-[0_18px_50px_rgba(255,130,180,0.45)]"}
@@ -904,34 +951,52 @@ export default function App() {
                 initial={false}
                 animate={openNote ? "open" : "closed"}
                 variants={{
-                  closed: { height: 120 },
-                  open: { height: openNoteHeight },
+                  closed: { height: 150 },
+                  open: { height: openNoteHeight + 56 },
                 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-                className="relative w-full max-w-3xl cursor-pointer overflow-hidden"
+                transition={{ duration: 0.9, ease: "easeInOut" }}
+                className="relative w-full max-w-3xl cursor-pointer overflow-hidden px-1"
                 onClick={() => setOpenNote(!openNote)}
               >
-                {/* Scroll Rods */}
-                <div
-                  className={`absolute -top-6 left-0 right-0 h-6 ${theme.rod} rounded-full shadow-lg`}
-                />
-                <div
-                  className={`absolute -bottom-6 left-0 right-0 h-6 ${theme.rod} rounded-full shadow-lg`}
-                />
+                <div className="pointer-events-none absolute left-4 right-4 top-3 z-20 h-7 rounded-full bg-[linear-gradient(180deg,#ca9bff_0%,#9156d6_45%,#5c2c9b_100%)] shadow-[inset_0_2px_3px_rgba(238,221,255,0.7),inset_0_-2px_2px_rgba(41,15,74,0.5),0_10px_14px_rgba(0,0,0,0.35)] sm:left-6 sm:right-6" />
+                <div className="pointer-events-none absolute left-4 right-4 bottom-3 z-20 h-7 rounded-full bg-[linear-gradient(180deg,#ca9bff_0%,#9156d6_45%,#5c2c9b_100%)] shadow-[inset_0_2px_3px_rgba(238,221,255,0.7),inset_0_-2px_2px_rgba(41,15,74,0.5),0_10px_14px_rgba(0,0,0,0.35)] sm:left-6 sm:right-6" />
+                <div className="pointer-events-none absolute left-2 top-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:left-3" />
+                <div className="pointer-events-none absolute right-2 top-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:right-3" />
+                <div className="pointer-events-none absolute left-2 bottom-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:left-3" />
+                <div className="pointer-events-none absolute right-2 bottom-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:right-3" />
+                <div className="pointer-events-none absolute right-3 top-6 z-30 h-1 w-10 origin-right rotate-[14deg] rounded-full bg-[#d7b7ff] sm:right-4 sm:w-12" />
+                <div className="pointer-events-none absolute right-3 top-7 z-30 h-20 w-[3px] origin-top rotate-[8deg] rounded-full bg-[#cfabff] sm:h-24" />
+                <div className="pointer-events-none absolute right-[2px] top-[102px] z-30 h-7 w-7 rounded-full border border-[#7a44bc]/60 bg-[#be8cff] shadow-[0_2px_6px_rgba(0,0,0,0.28)] sm:top-[116px]" />
+                <div className="pointer-events-none absolute right-[6px] top-[130px] z-30 flex gap-[3px] sm:top-[145px]">
+                  <span className="h-6 w-[2px] rotate-6 rounded-full bg-[#c79bff]" />
+                  <span className="h-7 w-[2px] -rotate-2 rounded-full bg-[#c79bff]" />
+                  <span className="h-6 w-[2px] rotate-[-7deg] rounded-full bg-[#c79bff]" />
+                </div>
 
-                {/* Paper */}
                 <div
-                  className={`relative h-full rounded-3xl ${theme.paper} border ${theme.border}
-      overflow-y-auto shadow-[0_30px_60px_rgba(0,0,0,0.35)] p-6 sm:p-10`}
+                  className="relative mx-8 my-6 h-[calc(100%-3rem)] overflow-y-auto rounded-[1.6rem] border border-[#b7ad88] px-6 pb-12 pt-12 shadow-[0_30px_60px_rgba(0,0,0,0.3)] sm:mx-10 sm:px-10"
+                  style={{
+                    backgroundColor: "#efe6ff",
+                    backgroundImage:
+                      "radial-gradient(circle_at_16%_10%,rgba(255,255,255,0.62),transparent_40%),radial-gradient(circle_at_84%_88%,rgba(106,73,168,0.18),transparent_46%)",
+                  }}
                 >
+                  <div className="pointer-events-none absolute inset-0 rounded-[1.6rem] [background-image:radial-gradient(#65508a_0.35px,transparent_0.35px)] [background-size:3px_3px] opacity-[0.12]" />
+                  <div className="pointer-events-none absolute left-0 right-0 top-0 h-10 rounded-t-[1.6rem] bg-gradient-to-b from-black/14 to-transparent" />
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-[1.6rem] bg-gradient-to-t from-black/18 to-transparent" />
+                  <div className="pointer-events-none absolute left-0 top-0 h-full w-5 rounded-l-[1.6rem] bg-gradient-to-r from-black/15 to-transparent" />
+                  <div className="pointer-events-none absolute right-0 top-0 h-full w-5 rounded-r-[1.6rem] bg-gradient-to-l from-black/13 to-transparent" />
+                  <div className="pointer-events-none absolute left-4 top-5 h-6 w-6 rotate-[-20deg] rounded-br-[100%] border-r border-b border-[#b8aa7f]/70 bg-[#efe9cf]/65" />
+                  <div className="pointer-events-none absolute bottom-5 right-4 h-6 w-6 rotate-[20deg] rounded-tl-[100%] border-l border-t border-[#b8aa7f]/70 bg-[#efe9cf]/65" />
+
                   {!openNote ? (
                     <div
-                      className={`h-full flex flex-col items-center justify-center text-center ${theme.text}`}
+                      className="font-adorable relative flex h-full flex-col items-center justify-center text-center text-[#2f2450]"
                     >
-                      <p className="text-lg font-semibold sm:text-2xl">
-                        📜 Tap to Open Your Note
+                      <p className="font-adorable-bold text-xl tracking-wide sm:text-3xl">
+                        📜 Tap to Open Your Scroll
                       </p>
-                      <p className={`mt-2 ${theme.subText}`}>
+                      <p className="mt-2 text-base italic text-[#5d4a8b] sm:text-lg">
                         A message just for you
                       </p>
                     </div>
@@ -940,27 +1005,27 @@ export default function App() {
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
-                      className={`text-center ${theme.text}`}
+                      className="font-adorable relative text-center text-[#2f2450]"
                     >
-                      <h2 className="text-3xl sm:text-4xl font-extrabold">
+                      <h2 className="font-adorable-bold text-4xl tracking-wide sm:text-5xl">
                         💖 Happy Birthday 💖
                       </h2>
 
-                      <p className="mt-6 text-base font-medium leading-relaxed sm:text-xl">
+                      <p className="mt-6 text-lg font-medium leading-relaxed sm:text-2xl">
                         Today isn’t just about cake and candles —
                         it’s about celebrating you, your journey,
                         your wins, your growth, and everything amazing
                         that’s coming your way.
                       </p>
 
-                      <p className="mt-6 text-base font-medium leading-relaxed sm:text-xl">
+                      <p className="mt-6 text-lg font-medium leading-relaxed sm:text-2xl">
                         May your days be full of laughter,
                         your goals turn into reality,
                         and your life feel as special
                         as you just made this moment 💫
                       </p>
 
-                      <p className="mt-10 text-2xl font-bold">
+                      <p className="font-adorable-bold mt-10 text-3xl tracking-wide">
                         🎂✨ Stay awesome, always ✨🎂
                       </p>
                     </motion.div>
@@ -983,13 +1048,130 @@ export default function App() {
                 Party Burst 🎇
               </button>
               <button
-                onClick={resetGame}
+                onClick={() => setStage("envelope")}
                 className="rounded-2xl border border-white/20 bg-white/15 px-8 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/25 sm:px-12 sm:py-4 sm:text-base"
+              >
+                Envelope Of Secrets
+              </button>
+            </div>
+          </>
+        )}
+
+        {stage === "envelope" && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-auto mt-8 w-full max-w-4xl"
+          >
+            <p className="mb-2 text-sm uppercase tracking-[0.22em] text-white/70">
+              Envelope
+            </p>
+
+            <div className="relative h-[430px] w-full overflow-hidden sm:h-[520px]">
+              <p className="mb-2 text-xs text-white/70 sm:text-sm">
+                Tap envelope to reveal full message
+              </p>
+
+              <div
+                className="absolute bottom-4 left-1/2 z-20 w-[86%] max-w-[520px] -translate-x-1/2 cursor-pointer"
+                onClick={openEnvelopeSequence}
+              >
+                <div
+                  className={`pointer-events-none absolute left-1/2 top-0 w-[70%] -translate-x-1/2 ${
+                    noteRevealed ? "z-40" : "z-20"
+                  }`}
+                >
+                  <motion.div
+                    initial={false}
+                    animate={
+                      noteRevealed
+                        ? { y: -186, scale: 1, opacity: 1 }
+                        : envelopeOpened
+                          ? { y: -96, scale: 0.985, opacity: 1 }
+                          : { y: -28, scale: 0.97, opacity: 1 }
+                    }
+                    transition={{ type: "spring", stiffness: 120, damping: 18 }}
+                    className="rounded-xl border border-[#d8d8d8] bg-[#fafafa] p-2 shadow-[0_14px_24px_rgba(0,0,0,0.28)]"
+                  >
+                    {!envelopeOpened ? (
+                      <div className="relative rounded-lg border border-[#dedede] bg-[#f8f8f8] px-4 py-4 [clip-path:polygon(0_0,100%_0,100%_82%,50%_100%,0_82%)]">
+                        <div className="mx-auto h-1.5 w-2/3 rounded bg-[#e4e4e4]" />
+                        <div className="mx-auto mt-2 h-1.5 w-3/4 rounded bg-[#e4e4e4]" />
+                        <div className="mx-auto mt-2 h-1.5 w-[70%] rounded bg-[#e4e4e4]" />
+                        <div className="mx-auto mt-2 h-1.5 w-[62%] rounded bg-[#e4e4e4]" />
+                      </div>
+                    ) : (
+                      <div
+                        className="rounded-xl border border-[#d9d9d9] px-3 py-3 text-[#3f3426] sm:px-6 sm:py-5"
+                        style={{
+                          backgroundColor: "#f4f3ee",
+                          backgroundImage:
+                            "repeating-linear-gradient(to bottom,#f4f3ee 0px,#f4f3ee 30px,#d3dced 31px)",
+                        }}
+                      >
+                        <p className="font-adorable-bold text-center leading-tight text-xl sm:text-3xl">
+                          💌 You actually opened it?
+                        </p>
+                        <p className="font-adorable mt-2 text-center leading-tight text-sm sm:mt-3 sm:text-2xl">
+                          Fine. Here is your beautiful message:
+                        </p>
+                        {noteRevealed && (
+                          <>
+                            <p className="font-adorable mt-2 text-center leading-tight text-sm sm:text-2xl">
+                              <span className="bg-[#f2d7b8] px-2 py-1">
+                                You are chaos, charm, and magic in one person.
+                              </span>
+                            </p>
+                            <p className="font-adorable mt-2 text-center leading-tight text-sm sm:text-2xl">
+                              <span className="bg-[#f2d7b8] px-2 py-1">
+                                Every room lights up when you walk in.
+                              </span>
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
+
+                <div className="absolute -top-5 left-1/2 z-10 h-7 w-12 -translate-x-1/2 rounded-t-full bg-[#f1b436]" />
+                <div className="relative h-[180px] rounded-2xl border border-[#e59623] bg-[#f7ae1a] shadow-[0_16px_24px_rgba(0,0,0,0.32)] sm:h-[200px]">
+                  <div className="absolute inset-0 rounded-2xl [clip-path:polygon(0_0,50%_52%,0_100%)] bg-[#f4aa16]" />
+                  <div className="absolute inset-0 rounded-2xl [clip-path:polygon(100%_0,50%_52%,100%_100%)] bg-[#f4aa16]" />
+                </div>
+                <div style={{ borderRadius: 20,overflow:'hidden' }} className="pointer-events-none absolute left-0 right-0 bottom-[0px] z-30 sm:bottom-[0px] ">
+                  <motion.div
+                    initial={false}
+                    animate={
+                      envelopeOpened
+                        ? { y: 12, opacity: 0 }
+                        : { y: 0, opacity: 1 }
+                    }
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                
+                    className="relative h-20 w-full [clip-path:polygon(0_100%,50%_0,100%_100%)] bg-[#f8bb3a] shadow-[0_7px_10px_rgba(0,0,0,0.18)] sm:h-24"
+                  />
+                  <div style={{ width: isMobileView?"54%": "100%" }} className="pointer-events-none absolute left-0 top-[1px] sm:top-[-10px] h-[2px] w-1/2 origin-left rotate-[22deg] bg-[#ee8b1f]" />
+                  <div style={{ width: isMobileView?"54%":"100%" }} className="pointer-events-none absolute right-0 top-[1px] sm:top-[-10px] h-[2px] w-1/2 origin-right -rotate-[22deg] bg-[#ee8b1f]" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                onClick={revealCompliment}
+                className="rounded-2xl border border-cyan-200/30 bg-cyan-400/20 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-cyan-400/30 sm:text-base"
+              >
+                More Compliments 💬
+              </button>
+              <button
+                onClick={resetGame}
+                className="rounded-2xl border border-white/20 bg-white/15 px-8 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/25 sm:text-base"
               >
                 Play Again 🔄
               </button>
             </div>
-          </>
+          </motion.div>
         )}
 
         {/* ---------- MODAL ---------- */}
@@ -1009,9 +1191,17 @@ export default function App() {
                 <span className="text-xs uppercase tracking-[0.2em] text-white/75 sm:text-sm">
                   Memory Gallery
                 </span>
-                <span className="text-xs font-semibold sm:text-sm">
-                  {activeIndex + 1} / {images.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsImageFlipped((prev) => !prev)}
+                    className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/25 sm:text-xs"
+                  >
+                    {isImageFlipped ? "Show Photo" : "Reveal Message"}
+                  </button>
+                  <span className="text-xs font-semibold sm:text-sm">
+                    {activeIndex + 1} / {images.length}
+                  </span>
+                </div>
               </div>
 
               <button
@@ -1029,20 +1219,71 @@ export default function App() {
                       prev === 0 ? images.length - 1 : prev - 1
                     )
                   }
+                  onMouseDown={() => setIsImageFlipped(false)}
                   aria-label="Previous image"
                   className="absolute left-2 z-10 select-none rounded-full border border-white/30 bg-white/15 px-3 py-1 text-2xl text-white transition hover:-translate-y-0.5 hover:bg-white/25 sm:left-4 sm:text-3xl"
                 >
                   ‹
                 </button>
 
-                <motion.img
-                  key={activeIndex}
-                  src={images[activeIndex]}
-                  initial={{ scale: 0.96, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.28 }}
-                  className="h-[50vh] w-full rounded-2xl object-contain sm:h-[62vh]"
-                />
+                <div className="flex h-[50vh] w-full items-center justify-center sm:h-[62vh]" style={{ perspective: "1600px" }}>
+                  <motion.div
+                    key={`flip-${activeIndex}-${isImageFlipped ? "back" : "front"}`}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={(_, info) => {
+                      if (Math.abs(info.offset.x) > 70) {
+                        setIsImageFlipped((prev) => !prev);
+                      }
+                    }}
+                    initial={{ scale: 0.96, opacity: 0, rotateY: 0 }}
+                    animate={{
+                      scale: 1,
+                      opacity: 1,
+                      rotateY: isImageFlipped ? 180 : 0,
+                    }}
+                    transition={{
+                      rotateY: { type: "spring", stiffness: 95, damping: 16, mass: 0.8 },
+                      scale: { duration: 0.26 },
+                      opacity: { duration: 0.26 },
+                    }}
+                    style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+                    className="relative h-[min(62vh,620px)] w-[min(78vw,440px)] rounded-2xl"
+                  >
+                    <div
+                      className="absolute inset-0 rounded-2xl border border-white/35 bg-white/8 p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]"
+                      style={{ backfaceVisibility: "hidden" }}
+                    >
+                      <motion.img
+                        src={images[activeIndex]}
+                        className="h-full w-full rounded-xl object-cover"
+                      />
+                      <div className="pointer-events-none absolute inset-2 rounded-xl bg-[linear-gradient(125deg,rgba(255,255,255,0.24),rgba(255,255,255,0)_38%)]" />
+                    </div>
+
+                    <div
+                      className="absolute inset-0 flex items-center justify-center rounded-2xl border border-[#d4c8a9] bg-[#f8f2df] p-8 text-center text-[#4b3b2a] shadow-[0_20px_40px_rgba(0,0,0,0.28)]"
+                      style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                    >
+                      <div className="w-full rounded-2xl border border-[#d9cfb3] bg-[repeating-linear-gradient(to_bottom,#f8f2df_0px,#f8f2df_32px,#d5ddeb_33px)] px-6 py-7 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]">
+                        <div className="mx-auto mb-3 h-3 w-3 rounded-full bg-[#b5955f]" />
+                        <p className="text-xs uppercase tracking-[0.2em] text-[#6f5f44]">
+                          Hidden Note
+                        </p>
+                        <p className="mt-4 text-2xl font-bold sm:text-3xl">
+                          {carouselBackMessages[activeIndex]}
+                        </p>
+                        <p className="mt-4 text-sm text-[#7a6b4f] sm:text-base">
+                          Tap reveal button or swipe to flip back
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]"
+                      style={{ backfaceVisibility: "hidden" }}
+                    />
+                  </motion.div>
+                </div>
 
                 <button
                   onClick={() =>
@@ -1050,6 +1291,7 @@ export default function App() {
                       prev === images.length - 1 ? 0 : prev + 1
                     )
                   }
+                  onMouseDown={() => setIsImageFlipped(false)}
                   aria-label="Next image"
                   className="absolute right-2 z-10 select-none rounded-full border border-white/30 bg-white/15 px-3 py-1 text-2xl text-white transition hover:-translate-y-0.5 hover:bg-white/25 sm:right-4 sm:text-3xl"
                 >
@@ -1061,7 +1303,10 @@ export default function App() {
                 {images.map((src, index) => (
                   <button
                     key={`thumb-${index}`}
-                    onClick={() => setActiveIndex(index)}
+                    onClick={() => {
+                      setActiveIndex(index);
+                      setIsImageFlipped(false);
+                    }}
                     className={`overflow-hidden rounded-xl border transition ${
                       activeIndex === index
                         ? "border-pink-300/90 ring-2 ring-pink-300/60"
