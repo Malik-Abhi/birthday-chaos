@@ -1,4 +1,9 @@
 import { motion } from "framer-motion";
+import photo1 from "../memories/photo1.jpeg";
+import photo2 from "../memories/photo2.jpeg";
+import photo3 from "../memories/photo3.jpeg";
+import photo4 from "../memories/photo4.jpeg";
+import video1 from "../memories/video1.mp4";
 
 export default function MemoriesGallery() {
     return (
@@ -15,10 +20,10 @@ export default function MemoriesGallery() {
             {/* Photos */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                 {[
-                    "/memories/photo1.jpg",
-                    "/memories/photo2.jpg",
-                    "/memories/photo3.jpg",
-                    "/memories/photo4.jpg",
+                    photo1,
+                    photo2,
+                    photo3,
+                    photo4,
                 ].map((src, i) => (
                     <motion.img
                         key={i}
@@ -35,7 +40,7 @@ export default function MemoriesGallery() {
                 className="rounded-2xl overflow-hidden shadow-xl"
             >
                 <video controls className="w-full">
-                    <source src="/memories/video1.mp4" type="video/mp4" />
+                    <source src={video1} type="video/mp4" />
                 </video>
             </motion.div>
         </motion.div>

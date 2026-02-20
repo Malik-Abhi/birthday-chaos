@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
+import type { MouseEvent } from "react";
+import photo1 from "./memories/photo1.jpeg";
+import photo2 from "./memories/photo2.jpeg";
+import photo3 from "./memories/photo3.jpeg";
+import photo4 from "./memories/photo4.jpeg";
+import video1 from "./memories/video1.mp4";
 
 // ---------------- TYPES ----------------
 type Card = {
@@ -13,40 +19,57 @@ export default function App() {
   const { width, height } = useWindowSize();
   const reduceMotion = useReducedMotion();
   const totalCards = 6;
-  const stageOrder: Array<"button" | "shuffle" | "cards" | "win"> = [
+  const stageOrder: Array<"button" | "wheel" | "shuffle" | "cards" | "win"> = [
     "button",
+    "wheel",
     "shuffle",
     "cards",
     "win",
   ];
 
   const images = [
-    "/memories/photo1.jpg",
-    "/memories/photo2.jpg",
-    "/memories/photo3.jpg",
-    "/memories/photo4.jpg",
+    photo1,
+    photo2,
+    photo3,
+    photo4,
   ];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [openNote, setOpenNote] = useState(false);
 
-  const [stage, setStage] = useState<"button" | "shuffle" | "cards" | "win">(
+  const [stage, setStage] = useState<
+    "button" | "wheel" | "shuffle" | "cards" | "win"
+  >(
     "button"
   );
 
   const [checked, setChecked] = useState(false);
   const [btnX, setBtnX] = useState(0);
+  const [btnY, setBtnY] = useState(0);
+  const [surrenderCountdown, setSurrenderCountdown] = useState(10);
   const [wrongCard, setWrongCard] = useState<Card[]>([]);
 
   const [revealGift, setRevealGift] = useState(true);
   const [cards, setCards] = useState<Card[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showBottomBlast, setShowBottomBlast] = useState(false);
+  const [bottomBlastOpacity, setBottomBlastOpacity] = useState(1);
+  const [partyBurstSource, setPartyBurstSource] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [partyMode, setPartyMode] = useState(true);
   const [funMessageIndex, setFunMessageIndex] = useState(0);
   const [compliment, setCompliment] = useState<string | null>(null);
   const [luckyCharm, setLuckyCharm] = useState("🍀");
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [wheelResult, setWheelResult] = useState<string | null>(null);
+  const [isWheelSpinning, setIsWheelSpinning] = useState(false);
+  const [hasSpunWheel, setHasSpunWheel] = useState(false);
   const openNoteHeight = width < 640 ? 620 : 460;
   const confettiPieces = width < 640 ? 360 : 700;
   const burstPieces = width < 640 ? 140 : 260;
@@ -72,6 +95,44 @@ export default function App() {
     []
   );
   const charmSet = ["🍀", "🌟", "🧿", "🎲", "🦄", "💎", "🪩"];
+  const wheelOptions = useMemo(
+    () => [
+      "No gift 😶",
+      "Big Hug 🤗",
+      "1 Gift 🎁",
+      "2 Gifts 🎁",
+      "3 Gifts 🎁",
+      "4 Gifts 🎁",
+      "5 Gifts 🎁",
+      "6 Gifts 🎁",
+      "7 Gifts 🎁",
+      "8 Gifts 🎁",
+    ],
+    []
+  );
+  const wheelStopOptions = useMemo(
+    () => ["1 Gift 🎁", "2 Gifts 🎁", "3 Gifts 🎁"],
+    []
+  );
+  const wheelSliceColors = [
+    "#fb7185",
+    "#a78bfa",
+    "#22d3ee",
+    "#34d399",
+    "#f59e0b",
+    "#f472b6",
+  ];
+  const wheelGradient = useMemo(() => {
+    const segmentAngle = 360 / wheelOptions.length;
+    return `conic-gradient(${wheelOptions
+      .map((_, index) => {
+        const start = index * segmentAngle;
+        const end = start + segmentAngle;
+        const color = wheelSliceColors[index % wheelSliceColors.length];
+        return `${color} ${start}deg ${end}deg`;
+      })
+      .join(", ")})`;
+  }, [wheelOptions]);
 
   const themes = {
     classic: {
@@ -104,6 +165,10 @@ export default function App() {
       button: {
         title: "Birthday Quest",
         subtitle: "Catch the button or surrender to unlock the surprise",
+      },
+      wheel: {
+        title: "Birthday Wheel",
+        subtitle: "",
       },
       shuffle: {
         title: "Watch Closely",
@@ -138,14 +203,23 @@ export default function App() {
     setOpenNote(false);
     setChecked(false);
     setBtnX(0);
+    setBtnY(0);
+    setSurrenderCountdown(10);
     setWrongCard([]);
     setRevealGift(true);
     setCards([]);
     setShowConfetti(false);
+    setShowBottomBlast(false);
+    setBottomBlastOpacity(1);
+    setPartyBurstSource(null);
     setStatusMessage(null);
     setFunMessageIndex(0);
     setCompliment(null);
     setLuckyCharm("🍀");
+    setWheelRotation(0);
+    setWheelResult(null);
+    setIsWheelSpinning(false);
+    setHasSpunWheel(false);
     setStage("button");
   };
 
@@ -198,6 +272,29 @@ export default function App() {
     return () => clearInterval(ticker);
   }, [funMessages.length, partyMode, stage]);
 
+  useEffect(() => {
+    if (stage !== "button") return;
+    if (checked) {
+      setSurrenderCountdown(10);
+      return;
+    }
+
+    setSurrenderCountdown(10);
+    const countdown = setInterval(() => {
+      setSurrenderCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdown);
+          setChecked(true);
+          setStatusMessage("Auto-surrender activated after 10 seconds.");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdown);
+  }, [checked, stage]);
+
   // ---------------- PICK CARD ----------------
   const pickCard = (card: Card) => {
     if (wrongCard.some((previousCard) => previousCard.id === card.id)) return;
@@ -217,9 +314,33 @@ export default function App() {
   const cardsRemaining = Math.max(totalCards - attemptsUsed, 1);
   const nextPickOdds = Math.round((1 / cardsRemaining) * 100);
   const stageProgress = ((stageOrder.indexOf(stage) + 1) / stageOrder.length) * 100;
-  const triggerPartyBurst = () => {
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 4500);
+  const triggerPartyBurst = (event?: MouseEvent<HTMLButtonElement>) => {
+    setBottomBlastOpacity(1);
+    if (event?.currentTarget) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setPartyBurstSource({
+        // Emit exactly from the button center.
+        x: rect.left + rect.width / 2 - 2,
+        y: rect.top + rect.height / 2 - 2,
+        w: 4,
+        h: 4,
+      });
+    } else {
+      setPartyBurstSource({
+        x: Math.max(0, width / 2 - 2),
+        y: Math.max(0, height - 110),
+        w: 4,
+        h: 4,
+      });
+    }
+
+    setShowBottomBlast(true);
+    setTimeout(() => setBottomBlastOpacity(0), 3800);
+    setTimeout(() => {
+      setShowBottomBlast(false);
+      setBottomBlastOpacity(1);
+      setPartyBurstSource(null);
+    }, 5000);
   };
   const revealCompliment = () => {
     const randomMessage =
@@ -237,6 +358,40 @@ export default function App() {
       : attemptsUsed <= 2
         ? "Sharp Memory"
         : "Persistent Winner";
+  const spinWheel = () => {
+    if (isWheelSpinning || hasSpunWheel) return;
+    setIsWheelSpinning(true);
+    setWheelResult(null);
+
+    const selectedStop =
+      wheelStopOptions[Math.floor(Math.random() * wheelStopOptions.length)];
+    const foundIndex = wheelOptions.indexOf(selectedStop);
+    const selectedIndex = foundIndex >= 0 ? foundIndex : 3;
+    const segmentAngle = 360 / wheelOptions.length;
+    const targetAngle = selectedIndex * segmentAngle + segmentAngle / 2;
+    const fullRounds = 360 * (5 + Math.floor(Math.random() * 3));
+    const finalRotation = wheelRotation + fullRounds + (360 - targetAngle);
+
+    setWheelRotation(finalRotation);
+    setTimeout(() => {
+      setWheelResult(selectedStop);
+      setStatusMessage(`Wheel says: ${selectedStop}`);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+      setIsWheelSpinning(false);
+      setHasSpunWheel(true);
+    }, 4300);
+  };
+  const moveCatchButton = () => {
+    if (checked) return;
+    // Let the button dodge in both horizontal and vertical directions.
+    const maxX = Math.max(35, Math.min(width * 0.28, 240));
+    const maxY = Math.max(18, Math.min(height * 0.12, 100));
+    const directionX = Math.random() > 0.5 ? 1 : -1;
+    const directionY = Math.random() > 0.5 ? 1 : -1;
+    setBtnX(directionX * (Math.random() * maxX));
+    setBtnY(directionY * (Math.random() * maxY));
+  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_10%,#4b1d5e_0%,#1f163f_35%,#0b1224_100%)] px-3 py-6 sm:px-5 sm:py-10">
@@ -292,6 +447,7 @@ export default function App() {
             numberOfPieces={confettiPieces}
             gravity={0.22}
             recycle={false}
+            style={{ zIndex: 60, pointerEvents: "none" }}
           />
           <Confetti
             width={width}
@@ -301,8 +457,37 @@ export default function App() {
             recycle={false}
             wind={0.02}
             colors={["#fef08a", "#f9a8d4", "#c4b5fd", "#86efac", "#93c5fd"]}
+            style={{ zIndex: 60, pointerEvents: "none" }}
           />
         </>
+      )}
+      {showBottomBlast && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{ opacity: bottomBlastOpacity }}
+          transition={{ duration: 1.1, ease: "easeOut" }}
+          className="pointer-events-none fixed inset-0 z-[85]"
+        >
+          <Confetti
+            width={width}
+            height={height}
+            numberOfPieces={width < 640 ? 260 : 420}
+            recycle={false}
+            gravity={0.2}
+            confettiSource={
+              partyBurstSource ?? {
+                x: Math.max(0, width / 2 - 2),
+                y: Math.max(0, height - 110),
+                w: 4,
+                h: 4,
+              }
+            }
+            initialVelocityY={{ min: -22, max: -10 }}
+            initialVelocityX={{ min: -10, max: 10 }}
+            colors={["#fde047", "#f9a8d4", "#a7f3d0", "#93c5fd", "#c4b5fd"]}
+            style={{ zIndex: 85, pointerEvents: "none" }}
+          />
+        </motion.div>
       )}
 
       {stage === "win" && !reduceMotion && (
@@ -350,23 +535,7 @@ export default function App() {
               }}
             />
           ))}
-          {Array.from({ length: 8 }).map((_, idx) => (
-            <motion.span
-              key={`balloon-${idx}`}
-              className="absolute h-12 w-10 rounded-[60%_60%_55%_55%] bg-gradient-to-b from-pink-300 to-fuchsia-500 opacity-65"
-              initial={{
-                x: Math.random() * Math.max(width || 1200, 1200),
-                y: (height || 900) + Math.random() * 180,
-              }}
-              animate={{ y: -120, x: [0, -12, 10, 0] }}
-              transition={{
-                duration: 6.5 + Math.random() * 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: idx * 0.3,
-              }}
-            />
-          ))}
+          
         </div>
       )}
 
@@ -467,19 +636,18 @@ export default function App() {
           >
             <motion.div variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}>
               <motion.button
-                animate={{ x: btnX }}
+                animate={{ x: btnX, y: btnY }}
                 transition={{ type: "spring", stiffness: 220, damping: 20 }}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
+                onMouseEnter={moveCatchButton}
                 onClick={() => {
                   if (!checked) {
-                    // Keep motion playful but bounded on small screens.
-                    const maxX = Math.max(35, Math.min(width * 0.28, 240));
-                    const direction = Math.random() > 0.5 ? 1 : -1;
-                    setBtnX(direction * (Math.random() * maxX));
+                    setStatusMessage("You caught it! Moving to the wheel.");
+                    setStage("wheel");
                   } else {
-                    setStatusMessage("Game started. Watch the gift carefully.");
-                    setStage("shuffle");
+                    setStatusMessage("First spin the wheel, then we shuffle the cards.");
+                    setStage("wheel");
                   }
                 }}
                 aria-label={checked ? "Unlock surprise" : "Catch me button"}
@@ -505,10 +673,91 @@ export default function App() {
                 />
                 Surrender
             </motion.label>
+            {!checked && (
+              <p className="text-xs text-yellow-200/90 sm:text-sm">
+                Auto-surrender in {surrenderCountdown}s
+              </p>
+            )}
           </motion.div>
         )}
 
-        {/* ---------- STAGE 2 : SHUFFLE ---------- */}
+        {/* ---------- STAGE 2 : WHEEL ---------- */}
+        {stage === "wheel" && (
+          <div className="mx-auto mt-6 max-w-3xl">
+            <p className="mb-5 text-sm text-white/80 sm:text-base">
+              How many gifts will you receive on this birthday from Gunjan?<br/>
+              Don't forget to take a screenshot.
+            </p>
+
+            <div className="relative mx-auto h-72 w-72 sm:h-80 sm:w-80">
+              <div className="absolute left-1/2 top-[-10px] z-20 h-0 w-0 -translate-x-1/2 border-l-[12px] border-r-[12px] border-t-[24px] border-l-transparent border-r-transparent border-t-yellow-300 drop-shadow-[0_0_14px_rgba(253,224,71,0.85)]" />
+              <motion.div
+                animate={{ rotate: wheelRotation }}
+                transition={{ duration: 4.2, ease: [0.15, 0.9, 0.2, 1] }}
+                className="relative h-full w-full rounded-full border-4 border-white/25 shadow-[0_0_55px_rgba(236,72,153,0.35)]"
+                style={{
+                  background: wheelGradient,
+                }}
+              >
+                {wheelOptions.map((option, index) => {
+                  const segmentAngle = 360 / wheelOptions.length;
+                  const angle = index * segmentAngle + segmentAngle / 2 - 90;
+                  const radius = width < 640 ? 112 : 126;
+                  const radians = (angle * Math.PI) / 180;
+                  const x = Math.cos(radians) * radius;
+                  const y = Math.sin(radians) * radius;
+                  return (
+                    <span
+                      key={option}
+                      className="absolute rounded-full border border-white/35 bg-black/35 px-2 py-1 text-[10px] font-semibold leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.45)] backdrop-blur-[2px] sm:text-xs"
+                      style={{
+                        left: `calc(50% + ${x}px)`,
+                        top: `calc(50% + ${y}px)`,
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    >
+                      {option.replace(" 🎁", "")}
+                    </span>
+                  );
+                })}
+                <div className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30 bg-white/20 backdrop-blur-sm" />
+              </motion.div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                onClick={spinWheel}
+                disabled={isWheelSpinning || hasSpunWheel}
+                className="rounded-2xl border border-pink-200/30 bg-gradient-to-r from-pink-500/80 to-violet-500/80 px-7 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+              >
+                {isWheelSpinning
+                  ? "Spinning..."
+                  : hasSpunWheel
+                    ? "Spin Used ✅"
+                    : "Spin The Wheel 🎡"}
+              </button>
+              <button
+                onClick={() => setStage("shuffle")}
+                disabled={!wheelResult || isWheelSpinning}
+                className="rounded-2xl border border-white/20 bg-white/15 px-7 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+              >
+                Continue To Shuffle
+              </button>
+            </div>
+
+            {wheelResult && (
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 text-sm font-semibold text-yellow-200 sm:text-base"
+              >
+                Result: {wheelResult}
+              </motion.p>
+            )}
+          </div>
+        )}
+
+        {/* ---------- STAGE 3 : SHUFFLE ---------- */}
         {stage === "shuffle" && (
           <>
             <div className="mt-7 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-6 md:gap-8">
@@ -545,7 +794,7 @@ export default function App() {
           </>
         )}
 
-        {/* ---------- STAGE 3 : PICK CARD ---------- */}
+        {/* ---------- STAGE 4 : PICK CARD ---------- */}
         {stage === "cards" && (
           <>
             <div className="mt-1 flex flex-wrap justify-center gap-2 sm:gap-3">
@@ -596,7 +845,7 @@ export default function App() {
           </motion.p>
         )}
 
-        {/* ---------- STAGE 4 : WIN ---------- */}
+        {/* ---------- STAGE 5 : WIN ---------- */}
         {stage === "win" && (
           <>
             {partyMode && (
@@ -638,7 +887,7 @@ export default function App() {
                 className="overflow-hidden rounded-3xl bg-black shadow-2xl ring-1 ring-white/10"
               >
                 <video controls className="h-full min-h-[220px] w-full object-cover sm:min-h-[280px]">
-                  <source src="/memories/video1.mp4" type="video/mp4" />
+                  <source src={video1} type="video/mp4" />
                 </video>
               </motion.div>
             </div>
@@ -728,7 +977,7 @@ export default function App() {
                 Compliment Drop 💬
               </button>
               <button
-                onClick={triggerPartyBurst}
+                onClick={(event) => triggerPartyBurst(event)}
                 className="rounded-2xl border border-pink-200/30 bg-gradient-to-r from-fuchsia-500/60 to-pink-500/60 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:brightness-110 sm:text-base"
               >
                 Party Burst 🎇
@@ -743,78 +992,104 @@ export default function App() {
           </>
         )}
 
-        {compliment && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="pointer-events-none fixed bottom-6 left-1/2 z-[70] w-[92%] max-w-md -translate-x-1/2 rounded-2xl border border-white/20 bg-black/60 px-4 py-3 text-center text-sm text-white/95 backdrop-blur-md sm:text-base"
-          >
-            {compliment}
-          </motion.div>
-        )}
-
         {/* ---------- MODAL ---------- */}
         {isModalOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-3 backdrop-blur-md sm:px-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-white/[0.05] px-3 backdrop-blur-md sm:px-4"
             onClick={() => setIsModalOpen(false)}
           >
-            {/* Close */}
-            <button
-              onClick={() => setIsModalOpen(false)}
-              aria-label="Close image modal"
-              className="absolute right-4 top-4 z-10 rounded-full bg-white/15 px-3 py-1 text-2xl text-white transition hover:bg-white/30 sm:right-6 sm:top-6 sm:text-3xl"
-            >
-              ✕
-            </button>
-
-            {/* Slider */}
             <div
-              className="relative flex w-full max-w-4xl items-center justify-center"
+              className="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/25 bg-[linear-gradient(145deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06))] p-3 shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-4"
               onClick={(event) => event.stopPropagation()}
             >
-              {/* Prev */}
+              <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-white/95">
+                <span className="text-xs uppercase tracking-[0.2em] text-white/75 sm:text-sm">
+                  Memory Gallery
+                </span>
+                <span className="text-xs font-semibold sm:text-sm">
+                  {activeIndex + 1} / {images.length}
+                </span>
+              </div>
+
               <button
-                onClick={() =>
-                  setActiveIndex((prev) =>
-                    prev === 0 ? images.length - 1 : prev - 1
-                  )
-                }
-                aria-label="Previous image"
-                className="absolute left-1 z-10 select-none rounded-full bg-white/15 px-3 py-1 text-3xl text-white transition hover:bg-white/30 sm:left-4 sm:text-4xl"
+                onClick={() => setIsModalOpen(false)}
+                aria-label="Close image modal"
+                className="absolute right-4 top-16 z-20 rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xl text-white transition hover:bg-white/25 sm:right-6 sm:top-20 sm:text-2xl"
               >
-                ‹
+                ✕
               </button>
 
-              {/* Image */}
-              <motion.img
-                key={activeIndex}
-                src={images[activeIndex]}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="max-h-[80vh] w-full rounded-3xl object-contain shadow-2xl sm:w-auto"
-              />
+              <div className="relative flex items-center justify-center rounded-2xl border border-white/20 bg-white/[0.08] p-2 sm:p-3">
+                <button
+                  onClick={() =>
+                    setActiveIndex((prev) =>
+                      prev === 0 ? images.length - 1 : prev - 1
+                    )
+                  }
+                  aria-label="Previous image"
+                  className="absolute left-2 z-10 select-none rounded-full border border-white/30 bg-white/15 px-3 py-1 text-2xl text-white transition hover:-translate-y-0.5 hover:bg-white/25 sm:left-4 sm:text-3xl"
+                >
+                  ‹
+                </button>
 
-              {/* Next */}
-              <button
-                onClick={() =>
-                  setActiveIndex((prev) =>
-                    prev === images.length - 1 ? 0 : prev + 1
-                  )
-                }
-                aria-label="Next image"
-                className="absolute right-1 z-10 select-none rounded-full bg-white/15 px-3 py-1 text-3xl text-white transition hover:bg-white/30 sm:right-4 sm:text-4xl"
-              >
-                ›
-              </button>
+                <motion.img
+                  key={activeIndex}
+                  src={images[activeIndex]}
+                  initial={{ scale: 0.96, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.28 }}
+                  className="h-[50vh] w-full rounded-2xl object-contain sm:h-[62vh]"
+                />
+
+                <button
+                  onClick={() =>
+                    setActiveIndex((prev) =>
+                      prev === images.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  aria-label="Next image"
+                  className="absolute right-2 z-10 select-none rounded-full border border-white/30 bg-white/15 px-3 py-1 text-2xl text-white transition hover:-translate-y-0.5 hover:bg-white/25 sm:right-4 sm:text-3xl"
+                >
+                  ›
+                </button>
+              </div>
+
+              <div className="mt-3 grid grid-cols-4 gap-2 sm:gap-3">
+                {images.map((src, index) => (
+                  <button
+                    key={`thumb-${index}`}
+                    onClick={() => setActiveIndex(index)}
+                    className={`overflow-hidden rounded-xl border transition ${
+                      activeIndex === index
+                        ? "border-pink-300/90 ring-2 ring-pink-300/60"
+                        : "border-white/20 hover:border-white/45"
+                    }`}
+                    aria-label={`Open image ${index + 1}`}
+                  >
+                    <img
+                      src={src}
+                      className="h-16 w-full object-cover sm:h-20"
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
       </motion.div>
+
+      {compliment && (
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="pointer-events-none fixed inset-x-3 bottom-6 z-[90] mx-auto w-auto max-w-md rounded-2xl border border-white/20 bg-black/70 px-4 py-3 text-center text-sm text-white/95 backdrop-blur-md [overflow-wrap:anywhere] sm:inset-x-auto sm:left-1/2 sm:w-[92%] sm:max-w-md sm:-translate-x-1/2 sm:text-base"
+        >
+          {compliment}
+        </motion.div>
+      )}
     </div>
   );
 }
