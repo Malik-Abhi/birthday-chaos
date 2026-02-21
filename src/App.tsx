@@ -77,6 +77,7 @@ export default function App() {
   const [hasSpunWheel, setHasSpunWheel] = useState(false);
   const [envelopeOpened, setEnvelopeOpened] = useState(false);
   const [noteRevealed, setNoteRevealed] = useState(false);
+  const closedNoteHeight = width < 640 ? 192 : 150;
   const openNoteHeight = width < 640 ? 620 : 460;
   const confettiPieces = width < 640 ? 360 : 700;
   const burstPieces = width < 640 ? 140 : 260;
@@ -951,30 +952,30 @@ export default function App() {
                 initial={false}
                 animate={openNote ? "open" : "closed"}
                 variants={{
-                  closed: { height: 150 },
+                  closed: { height: closedNoteHeight },
                   open: { height: openNoteHeight + 56 },
                 }}
                 transition={{ duration: 0.9, ease: "easeInOut" }}
                 className="relative w-full max-w-3xl cursor-pointer overflow-hidden px-1"
                 onClick={() => setOpenNote(!openNote)}
               >
-                <div className="pointer-events-none absolute left-4 right-4 top-3 z-20 h-7 rounded-full bg-[linear-gradient(180deg,#ca9bff_0%,#9156d6_45%,#5c2c9b_100%)] shadow-[inset_0_2px_3px_rgba(238,221,255,0.7),inset_0_-2px_2px_rgba(41,15,74,0.5),0_10px_14px_rgba(0,0,0,0.35)] sm:left-6 sm:right-6" />
-                <div className="pointer-events-none absolute left-4 right-4 bottom-3 z-20 h-7 rounded-full bg-[linear-gradient(180deg,#ca9bff_0%,#9156d6_45%,#5c2c9b_100%)] shadow-[inset_0_2px_3px_rgba(238,221,255,0.7),inset_0_-2px_2px_rgba(41,15,74,0.5),0_10px_14px_rgba(0,0,0,0.35)] sm:left-6 sm:right-6" />
-                <div className="pointer-events-none absolute left-2 top-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:left-3" />
-                <div className="pointer-events-none absolute right-2 top-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:right-3" />
-                <div className="pointer-events-none absolute left-2 bottom-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:left-3" />
-                <div className="pointer-events-none absolute right-2 bottom-2.5 z-30 h-8 w-5 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:right-3" />
-                <div className="pointer-events-none absolute right-3 top-6 z-30 h-1 w-10 origin-right rotate-[14deg] rounded-full bg-[#d7b7ff] sm:right-4 sm:w-12" />
-                <div className="pointer-events-none absolute right-3 top-7 z-30 h-20 w-[3px] origin-top rotate-[8deg] rounded-full bg-[#cfabff] sm:h-24" />
-                <div className="pointer-events-none absolute right-[2px] top-[102px] z-30 h-7 w-7 rounded-full border border-[#7a44bc]/60 bg-[#be8cff] shadow-[0_2px_6px_rgba(0,0,0,0.28)] sm:top-[116px]" />
-                <div className="pointer-events-none absolute right-[6px] top-[130px] z-30 flex gap-[3px] sm:top-[145px]">
+                <div className="pointer-events-none absolute left-4 right-4 top-2 z-20 h-6 rounded-full bg-[linear-gradient(180deg,#ca9bff_0%,#9156d6_45%,#5c2c9b_100%)] shadow-[inset_0_2px_3px_rgba(238,221,255,0.7),inset_0_-2px_2px_rgba(41,15,74,0.5),0_10px_14px_rgba(0,0,0,0.35)] sm:left-6 sm:right-6 sm:top-3 sm:h-7" />
+                <div className="pointer-events-none absolute left-4 right-4 bottom-2 z-20 h-6 rounded-full bg-[linear-gradient(180deg,#ca9bff_0%,#9156d6_45%,#5c2c9b_100%)] shadow-[inset_0_2px_3px_rgba(238,221,255,0.7),inset_0_-2px_2px_rgba(41,15,74,0.5),0_10px_14px_rgba(0,0,0,0.35)] sm:left-6 sm:right-6 sm:bottom-3 sm:h-7" />
+                <div className="pointer-events-none absolute left-2 top-2 z-30 h-7 w-4 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:left-3 sm:top-2.5 sm:h-8 sm:w-5" />
+                <div className="pointer-events-none absolute right-2 top-2 z-30 h-7 w-4 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:right-3 sm:top-2.5 sm:h-8 sm:w-5" />
+                <div className="pointer-events-none absolute left-2 bottom-2 z-30 h-7 w-4 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:left-3 sm:bottom-2.5 sm:h-8 sm:w-5" />
+                <div className="pointer-events-none absolute right-2 bottom-2 z-30 h-7 w-4 rounded-full border border-[#3c1f64] bg-[linear-gradient(180deg,#d6b5ff,#7a44bc)] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:right-3 sm:bottom-2.5 sm:h-8 sm:w-5" />
+                <div className="pointer-events-none absolute right-3 top-5 z-30 h-1 w-8 origin-right rotate-[14deg] rounded-full bg-[#d7b7ff] sm:right-4 sm:top-6 sm:w-12" />
+                <div className="pointer-events-none absolute right-3 top-6 z-30 h-16 w-[3px] origin-top rotate-[8deg] rounded-full bg-[#cfabff] sm:h-24" />
+                <div className="pointer-events-none absolute right-[2px] top-[84px] z-30 h-6 w-6 rounded-full border border-[#7a44bc]/60 bg-[#be8cff] shadow-[0_2px_6px_rgba(0,0,0,0.28)] sm:top-[116px] sm:h-7 sm:w-7" />
+                <div className="pointer-events-none absolute right-[6px] top-[106px] z-30 flex gap-[3px] sm:top-[145px]">
                   <span className="h-6 w-[2px] rotate-6 rounded-full bg-[#c79bff]" />
                   <span className="h-7 w-[2px] -rotate-2 rounded-full bg-[#c79bff]" />
                   <span className="h-6 w-[2px] rotate-[-7deg] rounded-full bg-[#c79bff]" />
                 </div>
 
                 <div
-                  className="relative mx-8 my-6 h-[calc(100%-3rem)] overflow-y-auto rounded-[1.6rem] border border-[#b7ad88] px-6 pb-12 pt-12 shadow-[0_30px_60px_rgba(0,0,0,0.3)] sm:mx-10 sm:px-10"
+                  className="relative mx-6 my-5 h-[calc(100%-2.5rem)] overflow-y-auto rounded-[1.4rem] border border-[#b7ad88] px-4 pb-10 pt-10 shadow-[0_30px_60px_rgba(0,0,0,0.3)] sm:mx-10 sm:my-6 sm:h-[calc(100%-3rem)] sm:rounded-[1.6rem] sm:px-10 sm:pb-12 sm:pt-12"
                   style={{
                     backgroundColor: "#efe6ff",
                     backgroundImage:
@@ -993,10 +994,10 @@ export default function App() {
                     <div
                       className="font-adorable relative flex h-full flex-col items-center justify-center text-center text-[#2f2450]"
                     >
-                      <p className="font-adorable-bold text-xl tracking-wide sm:text-3xl">
+                      <p className="font-adorable-bold text-lg tracking-wide sm:text-3xl">
                         📜 Tap to Open Your Scroll
                       </p>
-                      <p className="mt-2 text-base italic text-[#5d4a8b] sm:text-lg">
+                      <p className="mt-2 text-sm italic text-[#5d4a8b] sm:text-lg">
                         A message just for you
                       </p>
                     </div>
